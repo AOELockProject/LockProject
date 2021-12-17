@@ -4,7 +4,12 @@
 #include <pitches.h>
 #include <SPI.h>
 #include <MFRC522.h>
+#include <Adafruit_Fingerprint.h>
+#include <SoftwareSerial.h>
 
+SoftwareSerial mySerial(18, 19); // 18: mega TX -> s608 RX / 19:mega RX -> s608 TX
+
+#define mySerial Serial1
 #define OPENED HIGH
 #define CLOSED LOW
 #define RST_PIN 49
@@ -15,6 +20,11 @@
 #define sFingerPrint 2
 
 int PassMode = sRFID;
+
+// fingerprint
+Adafruit_Fingerprint finger = Adafruit_Fingerprint(&mySerial);
+uint8_t id;
+int LED_pin[] = {2, 3};
 
 // LCD
 const int rs = 8, en = 9, d4 = 4, d5 = 5, d6 = 6, d7 = 7;
@@ -78,7 +88,6 @@ void keypadEvent(KeypadEvent key);
 void servo_turn();
 
 // LCD
-
 void buzzerSpeaker(long noteDuration, int BuzzerPin, boolean num);
 void defaultDisplay();
 void LCDPasswordWrong();
@@ -86,11 +95,20 @@ void LCDPasswordRight();
 boolean passwordCompare(char inputkey, char *password, int place);
 void passwordWrong();
 void passwordRight();
-int _strlen(char *str);
 
-void enterPassword(int length);
+// fingerprint
+void fingerPrint_Init(void);
+uint8_t readnumber(void);
+uint8_t getFingerprintEnroll(void);
+int getFingerprintIDez(void);
+
+// Function
+int _strlen(char *str);
+void enterPassword(void);
 boolean inputPasswordCompared(char *input, char *password);
 int modeSelect();
+void openLock();
+void closeLock();
 
 // Inititialize
 void LCD_Init();

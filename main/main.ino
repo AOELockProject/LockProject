@@ -1,0 +1,250 @@
+#include <usrlib.h>
+
+
+SoftwareSerial mySerial(18, 19); // 18: mega TX -> s608 RX / 19:mega RX -> s608 TX
+#define mySerial Serial1
+// fingerprint
+Adafruit_Fingerprint finger = Adafruit_Fingerprint(&mySerial);
+uint8_t id;
+int LED_pins[2] = {36, 37};
+
+
+int PassMode = sRFID;
+
+// keypad listener
+void keypadEvent(KeypadEvent key);
+
+// Keypad
+const byte ROWS = 4;
+const byte COLS = 3;
+
+char keys[ROWS][COLS] = {
+    {'1', '2', '3'},
+    {'4', '5', '6'},
+    {'7', '8', '9'},
+    {'*', '0', '#'}};
+
+byte rowPins[ROWS] = {2, 3, 4, 5};
+byte colPins[COLS] = {6, 7, 8};
+Keypad keypad = Keypad(makeKeymap(keys), rowPins, colPins, ROWS, COLS);
+
+// keypad.addEventListener(keypadEvent); // Add an event listener for this keypad
+
+// Servo
+Servo myservo;
+const int servoPin = 26;
+int pos = 0;
+
+// Speaker
+int noteDuration = 4, BuzzerPin = 25;
+
+// RGB
+const int RedPin = 22, GreenPin = 23, BluePin = 24;
+const int RGB_pins[3] = {RedPin, GreenPin, BluePin}; // R, G, B
+
+// Password
+char Password[] = "2345";
+
+// Lock status
+int lockStatus = CLOSED;
+
+// Input buffer
+char In_buffer[256];
+
+// RFID module
+byte nuidPICC[4];
+MFRC522 rfid(SS_PIN, RST_PIN);
+
+// LCD 
+const int rs = 8, en = 9, d4 = 4, d5 = 5, d6 = 6, d7 = 7;
+LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
+
+
+void setup()
+{
+  Serial.begin(9600);
+  
+  servo_Init(servoPin, myservo);
+  Buzzer_Init(noteDuration, BuzzerPin);
+  RFID_Init(rfid);
+  RGB_Init(RGB_pins);
+  fingerPrint_Init(finger);
+  LCD_Init(lcd);
+  LED_Init(LED_pins);
+  lockStatus = CLOSED;
+}
+
+// 默认读卡模式
+
+void loop()
+{
+  Serial.println("----Start---\n");
+  // PassMode = modeSelect(keypad);
+  /*test*/
+  PassMode = 4;
+  while (PassMode == 4)
+    if (Serial.available() > 0) {
+      PassMode = Serial.parseInt();
+      break;
+    }
+
+  switch (PassMode)
+  {
+  case sRFID:
+  {
+    /* RFID 输入模式*/
+    /* Test */
+    // 找卡
+    if (!rfid.PICC_IsNewCardPresent())
+      return;
+    // 验证NUID是否可读
+    if (!rfid.PICC_ReadCardSerial())
+      return;
+    MFRC522::PICC_Type piccType = rfid.PICC_GetType(rfid.uid.sak);
+    // 检查是否MIFARE卡类型
+    if (piccType != MFRC522::PICC_TYPE_MIFARE_MINI &&
+        piccType != MFRC522::PICC_TYPE_MIFARE_1K &&
+        piccType != MFRC522::PICC_TYPE_MIFARE_4K)
+    {
+      // lcd.setCursor(0, 0);
+      // lcd.print("Error");
+      return;
+    }
+    // 将NUID保存到nuidPICC数组
+    for (byte i = 0; i < 4; i++)
+    {
+      nuidPICC[i] = rfid.uid.uidByte[i];
+    }
+    // 使放置在读卡区的IC卡进入休眠状态，不再重复读卡
+    rfid.PICC_HaltA();
+
+    // 停止读卡模块编码
+    rfid.PCD_StopCrypto1();
+    if (nuidPICC[0] == 0x33 && nuidPICC[1] == 0x10 && nuidPICC[2] == 0x52 && nuidPICC[3] == 0x97)
+    {
+      lockStatus = servo_turn(pos, myservo, lockStatus);
+      passwordRight(lcd, RGB_pins, noteDuration, BuzzerPin);
+      lockStatus = servo_turn(pos, myservo, lockStatus);
+    }
+    else
+    {
+      passwordWrong(lcd, RGB_pins, noteDuration, BuzzerPin);
+    }
+    delay(1000);
+    RGB_Init(RGB_pins);
+    break;
+  }
+
+  case sKeypad:
+  {
+    /* 键盘输入密码
+      错误导致蜂鸣器蜂鸣，LCD显示"Wrong", RGB亮红灯
+      密码正确LCD显示"PASS!"
+    */
+    enterPassword(keypad, In_buffer);
+    if (!inputPasswordCompared(In_buffer, Password))
+    {
+      lockStatus = servo_turn(pos, myservo, lockStatus);
+      passwordRight(lcd, RGB_pins, noteDuration, BuzzerPin);
+      lockStatus = servo_turn(pos, myservo, lockStatus);
+    }
+    else
+    {
+      passwordWrong(lcd, RGB_pins, noteDuration, BuzzerPin);
+    }
+  }
+
+  case sFingerPrint:
+  {
+    /* 指纹识别模式 */
+    /* Default mode is Search */
+    // LCD display
+    // lcd.setCursor(0, 0);
+    // lcd.print("Fingerprint");
+    // delay(2000);
+    // lcd.setCursor(0, 0);
+    // lcd.print("1.Open 2.Change");
+    // lcd.setCursor(0, 1);
+    // lcd.print("3.Delete");
+
+    // char choose = keyRead(keypad);
+    char choose = '0';
+    Serial.println("choose");
+    while (choose == '0') {
+      if (Serial.available() > 0) {
+        choose = Serial.read();
+        break;
+      }
+    }
+
+    switch (choose) {
+      case '1':{
+        finger.getTemplateCount();
+        Serial.print(finger.templateCount);
+        if (getFingerprintIDez(finger, LED_pins) == -1)
+        {
+          Serial.println("WRONG");
+          RGB_color_red(RGB_pins);
+          delay(2000);
+          // lcd.setCursor(0, 0);
+          // lcd.print("Wrong fingrprint");
+        } else {
+          // lcd.setCursor(0, 0);
+          // lcd.print("Open!");
+          Serial.println("PASS");
+          lockStatus = servo_turn(pos, myservo, lockStatus);
+          RGB_color_green(RGB_pins);
+          delay(5000);
+          lockStatus = servo_turn(pos, myservo, lockStatus);
+        }
+        delay(500);
+        RGB_Init(RGB_pins);
+        break;
+      }
+      case '2': {
+        // while ((id = readnumber(keypad)) == 0);
+        getFingerprintEnroll(finger, 1, LED_pins);
+        // lcd.setCursor(0, 0);
+        // lcd.print("Changed/Saved!");
+        break;
+      }
+      case '3': {
+        finger.emptyDatabase();
+        break;
+      }
+      default:{}
+    }
+    break;
+  }
+  default:{}
+  }
+}
+
+/// keypad listener
+// void keypadEvent(KeypadEvent key)
+// {
+//     switch (keypad.getState())
+//     {
+//     case PRESSED:
+//         Serial.print(key);
+//         if (key == '#')
+//         {
+//             // clear
+//         }
+//         if (key == '*')
+//         {
+//             // confirm
+//         }
+//         break;
+//     case RELEASED:
+//         if (key == '*')
+//         {
+//         }
+//         break;
+//     case HOLD:
+//         if (key == '*')
+//         {
+//         }
+//         break;
+//     }
+// }

@@ -312,6 +312,7 @@ uint8_t getFingerprintEnroll(Adafruit_Fingerprint finger, uint8_t id, int RGB_pi
     }
 
     Serial.println("Remove finger");
+    RGB_color_blue(RGB_pins);
     delay(2000);
     p = 0;
     while (p != FINGERPRINT_NOFINGER)
@@ -344,7 +345,6 @@ uint8_t getFingerprintEnroll(Adafruit_Fingerprint finger, uint8_t id, int RGB_pi
             break;
         }
     }
-
     // OK success!
 
     p = finger.image2Tz(2);
@@ -401,7 +401,6 @@ uint8_t getFingerprintEnroll(Adafruit_Fingerprint finger, uint8_t id, int RGB_pi
     if (p == FINGERPRINT_OK)
     {
         Serial.println("Stored!");
-        RGB_color_blue(RGB_pins);
         delay(2000);
         RGB_Init(RGB_pins);
     }

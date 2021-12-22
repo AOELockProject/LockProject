@@ -52,7 +52,7 @@ int getFingerprintIDez(Adafruit_Fingerprint finger, int RGB_pins[3]);
 
 // Function
 int _strlen(char *str);
-void enterPassword(Keypad keypad, char *In_buffer);
+char * enterPassword(Keypad keypad,int *clock);
 bool inputPasswordCompared(char *input, char *password);
 int modeSelect(Keypad keypad);
 int openLock(int pos, Servo myservo, int lockStatus);

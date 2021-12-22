@@ -95,7 +95,7 @@ void loop()
     // Running LED
     digitalWrite(LED_pins[0], HIGH);
     /* uno Serial message send */
-    unoSerial.write('i');
+    unoSerial.write('c');
     /* RFID 输入模式*/
     /* Test */
     // 找卡
@@ -110,7 +110,6 @@ void loop()
         piccType != MFRC522::PICC_TYPE_MIFARE_1K &&
         piccType != MFRC522::PICC_TYPE_MIFARE_4K)
     {
-      unoSerial.write('c');
       return;
     }
     // 将NUID保存到nuidPICC数组
@@ -141,6 +140,7 @@ void loop()
 
   case sKeypad:
   {
+    unoSerial.write('i');
     // Running LED
     digitalWrite(LED_pins[1], HIGH);
     /* 键盘输入密码
@@ -164,6 +164,7 @@ void loop()
 
   case sFingerPrint:
   {
+    unoSerial.write('f');
     digitalWrite(LED_pins[2], HIGH);
     /* 指纹识别模式 */
     /* Default mode is Search */

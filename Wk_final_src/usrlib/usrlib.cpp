@@ -185,15 +185,39 @@ int _strlen(char *str)
 
 //输入密码
 
-void enterPassword(Keypad keypad, char *In_buffer)
+char * enterPassword(Keypad keypad,int *clock)//Modified by JW
 {
+	char *pw_pointer;
+    static char buff[]="!!!!";
+    char* buff_pointer = buff;
+    static char pw[5]="!!!!!";
+    pw_pointer = pw;
     int i = 0;
     char key;
-    while ((key = keyRead(keypad)) != '*')
+
+    while (((key = keyRead(keypad))) != '*'    )//输入密码 i<6的原因：进入模式输入的1算1个，密码算4个，最后的*也算一个
     {
-        In_buffer[i] = key;
-        i++;
+
+        if((*(buff_pointer+i-1)!=key || i==0 )&& key){
+          *(buff_pointer+i)= key; 
+          Serial.print("Entered key is:");
+          Serial.println(*(buff_pointer+i));    
+          i++;
+          
+        }
     }
+    if((key = keyRead(keypad))=='*' )//密码输入终止
+    {
+        Serial.println("* is be entered!");
+        *clock=0;
+        pw_pointer=buff_pointer;
+    }
+    for(int ii=0;ii<5;ii++){
+      Serial.println();
+      Serial.print("Entered ps in the headfile is:");
+      Serial.print(*(pw_pointer+ii));
+    }
+    return pw_pointer;
 }
 
 //输入成功后密码比较

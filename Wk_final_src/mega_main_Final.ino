@@ -14,9 +14,14 @@ int PassMode = sRFID;
 // keypad listener
 void keypadEvent(KeypadEvent key);
 
+int clooock=1;//Modified by JW
+int* cloock = &clooock;//Modified by JW
+
 // Keypad
 const byte ROWS = 4;
 const byte COLS = 3;
+
+char *enteredPW;//Modified by JW
 
 char keys[ROWS][COLS] = {
     {'1', '2', '3'},
@@ -43,13 +48,14 @@ const int RedPin = 22, GreenPin = 23, BluePin = 24;
 const int RGB_pins[3] = {RedPin, GreenPin, BluePin}; // R, G, B
 
 // Password
-char Password[] = "2345";
+char Password[4] = "2021";//Modified by JW
 
 // Lock status
 int lockStatus = CLOSED;
 
 // Input buffer
 char In_buffer[256];
+char *In_buffer = Input_buffer;
 
 // RFID module
 byte nuidPICC[4];
@@ -147,16 +153,26 @@ void loop()
       错误导致蜂鸣器蜂鸣，LCD显示"Wrong", RGB亮红灯
       密码正确LCD显示"PASS!"
     */
-    enterPassword(keypad, In_buffer);
-    if (!inputPasswordCompared(In_buffer, Password))
+    enteredPW= enterPassword(keypad,cloock);
+    
+
+    for(int ii=0;ii<5;ii++){
+      Serial.println();
+      Serial.print("Entered ps is:");
+      Serial.print(*(enteredPW+ii));
+    }
+
+    if (*(enteredPW+1)==Password[0] &&
+        *(enteredPW+2)==Password[1] &&
+        *(enteredPW+3)==Password[2] &&
+        *(enteredPW+4)==Password[3] )//Modified by JW
     {
       unoSerial.write('p');
       lockStatus = servo_turn(pos, myservo, lockStatus);
       passwordRight(RGB_pins, noteDuration, BuzzerPin);
       lockStatus = servo_turn(pos, myservo, lockStatus);
     }
-    else
-    {
+    else if((enteredPW!='!' && *enteredPW!=Password && *cloock==0)  ){
       unoSerial.write('w');
       passwordWrong(RGB_pins, noteDuration, BuzzerPin);
     }

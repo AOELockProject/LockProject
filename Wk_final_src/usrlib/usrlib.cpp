@@ -467,7 +467,7 @@ int getFingerprintIDez(Adafruit_Fingerprint finger, int RGB_pins[3])
         return -1;
 
     // found a match!
-    if (finger.fingerID == 1)
+    if (finger.fingerID)
     {
         return finger.fingerID;
     }
